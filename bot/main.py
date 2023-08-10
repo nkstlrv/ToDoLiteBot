@@ -6,7 +6,6 @@ import logging
 
 logging.basicConfig(format="%(levelname)s: %(message)s", level=logging.INFO)
 
-
 # loading local environment variables
 load_dotenv()
 
@@ -14,8 +13,9 @@ TELEGRAM_API_KEY = os.getenv("TELEGRAM_API_KEY")
 bot = Bot(token=TELEGRAM_API_KEY)
 dp = Dispatcher(bot)
 
-
 dp.message_handler(commands=["start"])
+
+
 async def start(message: types.Message):
     await message.answer(
         f"Hello there, <i><b>{message.chat.first_name}</b></i> 👋",
@@ -33,8 +33,8 @@ async def start(message: types.Message):
         "<b>Main Menu</b> ⚙",
         parse_mode="HTML",
     )
-    
-    
+
+
 if __name__ == "__main__":
     logging.info("[STARTING SERVER...]")
     executor.start_polling(dp)
