@@ -2,7 +2,12 @@ import os
 from dotenv import load_dotenv
 from aiogram import Bot, Dispatcher, executor, types
 from markups import MainMenuMarkup
-from functions import get_all_users, create_new_user, delete_user, create_task
+from db_functions import (
+    get_all_users, create_new_user,
+    delete_user, get_all_user_tasks,
+    create_task, get_all_user_done_tasks
+
+)
 import time
 import logging
 from sqlalchemy.orm import Session
@@ -44,6 +49,49 @@ async def start(message: types.Message):
         reply_markup=MainMenuMarkup.markup
     )
     time.sleep(1)
+
+
+@dp.message_handler(content_types=["text"])
+async def todo_menu(message: types.Message):
+    current_user = message.from_user
+
+    # User Reply handling
+    if "@new" in message.text:
+        task = message.text.split('@new')[-1].strip()
+        if task.strip() != "":
+            response = create_task(db, task, current_user.id)
+            if response:
+                await message.answer("New task created")
+            else:
+                await message.answer("This task already exists")
+
+    # Buttons handling
+    if message.text == "📝 Add new task":
+        await message.answer("To add new Task use format:")
+        await message.answer("<b><i>@new Go shopping</i></b>", parse_mode="html")
+    elif message.text == "📑 Show all tasks":
+
+        all_tasks = get_all_user_tasks(db, message.from_user.id)
+        print(all_tasks)
+        if all_tasks:
+            await message.answer("Here are your tasks")
+        else:
+            await message.answer("Your ToDo list is empty")
+
+    elif message.text == "❌ Delete task":
+
+        all_tasks = get_all_user_tasks(db, message.from_user.id)
+        if all_tasks:
+            await message.answer("Here are your tasks")
+        else:
+            await message.answer("Your ToDo list is empty")
+
+
+@dp.message_handler(commands=["delete"])
+async def delete(message: types.Message):
+    current_user = message.from_user.id
+    delete_user(db, current_user)
+    await message.answer("All your task have been deleted", reply_markup=types.ReplyKeyboardRemove())
 
 
 if __name__ == "__main__":
