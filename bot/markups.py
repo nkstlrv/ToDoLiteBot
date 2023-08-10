@@ -7,4 +7,4 @@ class MainMenuMarkup:
     b3 = types.InlineKeyboardButton("Completed tasks", callback_data="tasks_show_done")
     # b4 = types.InlineKeyboardButton("Mark as done", callback_data="tasks_mark_as_done")
     # b5 = types.InlineKeyboardButton("Delete task", callback_data="tasks_delete")
-    markup = types.ReplyKeyboardMarkup(resize_keyboard=True).add(b1, b2, b3)
+    markup = types.InlineKeyboardMarkup(resize_keyboard=True).add(b1, b2, b3)

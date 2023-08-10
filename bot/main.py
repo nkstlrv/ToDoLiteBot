@@ -24,7 +24,6 @@ dp = Dispatcher(bot)
 
 @dp.message_handler(commands=["start"])
 async def start(message: types.Message):
-
     current_user_id = message.from_user.id
     logged_id_users = get_all_users(db)
 
@@ -42,8 +41,8 @@ async def start(message: types.Message):
     time.sleep(1)
 
     if current_user_id not in logged_id_users:
-        await message.answer("You need to <b>login</b> first", parse_mode="html")
-        await message.answer("To <b>Log-In</b>, press 👉 /auth", parse_mode="html")
+        await message.answer("You need to <b>Log-In</b> first", parse_mode="html")
+        await message.answer("To <b>login</b>, press 👉 /auth", parse_mode="html")
     else:
         await message.answer(
             "<b>Main Menu</b> ⚙",
@@ -59,6 +58,19 @@ async def start(message: types.Message):
         parse_mode="HTML",
         reply_markup=MainMenuMarkup.markup,
     )
+
+
+@dp.message_handler(commands=["auth"])
+async def start(message: types.Message):
+    current_user_id = message.from_user.id
+    logged_id_users = get_all_users(db)
+
+    if current_user_id not in logged_id_users:
+        await message.answer(
+            "<b>Log-In</b>",
+            parse_mode="HTML",
+            reply_markup=MainMenuMarkup.markup,
+        )
 
 
 if __name__ == "__main__":
