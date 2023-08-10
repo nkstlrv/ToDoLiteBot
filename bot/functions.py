@@ -12,11 +12,14 @@ def get_all_users(db: Session):
 
 
 def create_new_user(db: Session, user_id: int, username: str):
-    new_user = models.User(user_id=user_id, username=username)
-    db.add(new_user)
-    db.commit()
-    db.refresh(new_user)
-    return new_user
+    if user_id not in get_all_users(db):
+        new_user = models.User(user_id=user_id, username=username)
+        db.add(new_user)
+        db.commit()
+        db.refresh(new_user)
+        return new_user
+    else:
+        return False
 
 
 def delete_user(db: Session, user_id: int):

@@ -21,19 +21,6 @@ TELEGRAM_API_KEY = os.getenv("TELEGRAM_API_KEY")
 bot = Bot(token=TELEGRAM_API_KEY)
 dp = Dispatcher(bot)
 
-# Argument needed to understand weather to process user inputs
-do_receive_messages = False
-
-
-def make_do_receive_true():
-    global do_receive_messages
-    do_receive_messages = True
-
-
-def make_do_receive_false():
-    global do_receive_messages
-    do_receive_messages = False
-
 
 @dp.message_handler(commands=["start"])
 async def start(message: types.Message):
@@ -54,6 +41,7 @@ async def start(message: types.Message):
     await message.answer(
         "I can help you with your ToDo tasks",
         parse_mode="HTML",
+        reply_markup=MainMenuMarkup.markup
     )
     time.sleep(1)
 
