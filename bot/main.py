@@ -6,7 +6,8 @@ from db_functions import (
     get_all_users, create_new_user,
     delete_user, get_all_user_tasks,
     create_task, get_all_user_todo_tasks,
-    mark_task_done
+    mark_task_done, get_all_user_done_tasks,
+    delete_completed_tasks
 
 )
 import time
@@ -85,6 +86,10 @@ async def todo_menu(message: types.Message):
             else:
                 await message.answer("This task is already completed")
 
+    elif "%clear" in message.text:
+        delete_completed_tasks(db, current_user.id)
+        await message.answer("Cleared all completed tasks")
+
     # Buttons handling
     if message.text == "📝 Add new task":
         await message.answer("To add new Task use format:")
@@ -131,13 +136,20 @@ async def todo_menu(message: types.Message):
         else:
             await message.answer("Your ToDo list is empty")
 
-    elif message.text == "❌ Delete task":
+    elif message.text == "❌ Clear completed tasks":
 
-        all_tasks = get_all_user_tasks(db, message.from_user.id)
-        if all_tasks:
-            await message.answer("Here are your tasks")
+        completed_tasks = get_all_user_done_tasks(db, message.from_user.id)
+        if completed_tasks:
+            msg = str()
+            for task in completed_tasks:
+                msg += f"\n{task.name}  ✅\n"
+            await message.answer("Here are your completed tasks")
+            await message.answer(msg)
+            time.sleep(1)
+            await message.answer("If you want to delete all you completed tasks, type: \n\n"
+                                 "<b><i>%clear</i></b>", parse_mode="html")
         else:
-            await message.answer("Your ToDo list is empty")
+            await message.answer("Your do not have completed tasks")
 
 
 @dp.message_handler(commands=["delete"])
