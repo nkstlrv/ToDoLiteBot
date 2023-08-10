@@ -1,7 +1,7 @@
 import os
 from dotenv import load_dotenv
 from aiogram import Bot, Dispatcher, executor, types
-from markups import MainMenuMarkup
+from markups import MainMenuMarkup, LoginMarkup
 from functions import get_all_users
 import time
 import logging
@@ -67,10 +67,16 @@ async def start(message: types.Message):
 
     if current_user_id not in logged_id_users:
         await message.answer(
-            "<b>Log-In</b>",
+            "To <b>login</b> press 👇",
             parse_mode="HTML",
-            reply_markup=MainMenuMarkup.markup,
+            reply_markup=LoginMarkup.markup,
         )
+
+
+@dp.message_handler(content_types=["text"])
+async def menu(message: types.Message):
+    if message.text == "Log-In":
+        pass
 
 
 if __name__ == "__main__":
