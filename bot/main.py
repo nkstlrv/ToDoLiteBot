@@ -71,7 +71,6 @@ async def todo_menu(message: types.Message):
     elif "%complete" in message.text:
         task_to_complete = message.text.split('%complete')[-1].strip()
 
-        print(task_to_complete)
         if task_to_complete.strip() != "":
             todo_tasks: list = get_all_user_todo_tasks(db, message.from_user.id)
             tasks_dict = dict()
