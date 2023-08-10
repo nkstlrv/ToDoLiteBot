@@ -62,6 +62,7 @@ async def todo_menu(message: types.Message):
             response = create_task(db, task, current_user.id)
             if response:
                 await message.answer("New task created")
+                await message.answer(response.name)
             else:
                 await message.answer("This task already exists")
 
@@ -72,9 +73,21 @@ async def todo_menu(message: types.Message):
     elif message.text == "📑 Show all tasks":
 
         all_tasks = get_all_user_tasks(db, message.from_user.id)
-        print(all_tasks)
+
         if all_tasks:
+
+            done_dict = {True: "✅", False: " 🔘"}
+
+            msg = ""
+
+            for task in all_tasks:
+                msg += f"\n{task.name} {done_dict[task.done]}\n"
+
             await message.answer("Here are your tasks")
+            await message.answer(msg)
+
+
+
         else:
             await message.answer("Your ToDo list is empty")
 
