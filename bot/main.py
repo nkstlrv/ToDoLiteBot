@@ -83,8 +83,9 @@ async def start(message: types.Message):
         await message.answer(
             "To <b>Completely Delete Account</b> press 👇",
             parse_mode="HTML",
-            reply_markup=LoginMarkup.markup,
+            reply_markup=DeleteAccountMarkup.markup,
         )
+        await message.answer("Be aware that all your ToDos will be <b>completely deleted</b>", parse_mode="html")
 
 
 @dp.message_handler(content_types=["text"])
