@@ -1,11 +1,17 @@
 import os
 from dotenv import load_dotenv
 from aiogram import Bot, Dispatcher, executor, types
-from markups import MainMenuMarkup, LoginMarkup, DeleteAccountMarkup
-from functions import get_all_users, create_new_user, delete_user, create_task
+from markups import MainMenuMarkup
+from db_functions import (
+    get_all_users, create_new_user,
+    delete_user, get_all_user_tasks,
+    create_task, get_all_user_todo_tasks,
+    mark_task_done, get_all_user_done_tasks,
+    delete_completed_tasks
+
+)
 import time
 import logging
-from sqlalchemy.orm import Session
 import models
 from database import SessionLocal, engine
 
@@ -21,24 +27,15 @@ TELEGRAM_API_KEY = os.getenv("TELEGRAM_API_KEY")
 bot = Bot(token=TELEGRAM_API_KEY)
 dp = Dispatcher(bot)
 
-# Argument needed to understand weather to process user inputs
-do_receive_messages = False
-
-
-def make_do_receive_true():
-    global do_receive_messages
-    do_receive_messages = True
-
-
-def make_do_receive_false():
-    global do_receive_messages
-    do_receive_messages = False
-
 
 @dp.message_handler(commands=["start"])
 async def start(message: types.Message):
-    current_user_id = message.from_user.id
+    current_user = message.from_user
     logged_id_users = get_all_users(db)
+
+    # Adding User to DB if not signed-up
+    if current_user not in logged_id_users:
+        create_new_user(db, user_id=current_user.id, username=current_user.username)
 
     await message.answer(
         f"Hello there, <i><b>{message.chat.first_name}</b></i> 👋",
@@ -50,107 +47,114 @@ async def start(message: types.Message):
     await message.answer(
         "I can help you with your ToDo tasks",
         parse_mode="HTML",
+        reply_markup=MainMenuMarkup.markup
     )
     time.sleep(1)
 
-    if current_user_id not in logged_id_users:
-        await message.answer("You need to <b>Log-In</b> first", parse_mode="html")
-        await message.answer("To <b>login</b>, press 👉 /auth", parse_mode="html")
-    else:
-        await message.answer(
-            "<b>Main Menu</b> ⚙",
-            parse_mode="HTML",
-            reply_markup=MainMenuMarkup.markup
-        )
-
-
-@dp.message_handler(commands=["menu"])
-async def start(message: types.Message):
-    current_user_id = message.from_user.id
-    logged_id_users = get_all_users(db)
-
-    if current_user_id not in logged_id_users:
-        await message.answer("You need to <b>Log-In</b> first", parse_mode="html")
-        await message.answer("To <b>login</b>, press 👉 /auth", parse_mode="html")
-    else:
-        await message.answer("Opening menu", reply_markup=types.ReplyKeyboardRemove())
-        await message.answer(
-            "<b>Main Menu</b> ⚙",
-            parse_mode="HTML",
-            reply_markup=MainMenuMarkup.markup,
-        )
-
-
-@dp.callback_query_handler(text_startswith="task")
-async def callback(call):
-    if call.data == "task_add":
-        await bot.send_message(call.from_user.id, "Type your ToDo in format")
-        await bot.send_message(call.from_user.id, "<b><i>@new Go shopping</i></b>", parse_mode="html")
-        make_do_receive_true()
-
 
 @dp.message_handler(content_types=["text"])
-async def menu(message: types.Message):
-    if "#" in message.text:
-        ...
+async def todo_menu(message: types.Message):
+    current_user = message.from_user
+
+    # User Reply handling
+    if "%new" in message.text:
+        task = message.text.split('%new')[-1].strip()
+        if task.strip() != "":
+            response = create_task(db, task, current_user.id)
+            if response:
+                await message.answer("New task created")
+                await message.answer(response.name)
+            else:
+                await message.answer("This task already exists")
+
+    elif "%complete" in message.text:
+        task_to_complete = message.text.split('%complete')[-1].strip()
+
+        if task_to_complete.strip() != "":
+            todo_tasks: list = get_all_user_todo_tasks(db, message.from_user.id)
+            tasks_dict = dict()
+            for ind, task in enumerate(todo_tasks, start=1):
+                tasks_dict[ind] = task.task_id
+
+            task_to_complete = int(task_to_complete)
+
+            response = mark_task_done(db, tasks_dict[task_to_complete])
+            if response:
+                await message.answer("Marked as completed")
+            else:
+                await message.answer("This task is already completed")
+
+    elif "%clear" in message.text:
+        delete_completed_tasks(db, current_user.id)
+        await message.answer("Cleared all completed tasks")
+
+    # Buttons handling
+    if message.text == "📝 Add new task":
+        await message.answer("To add new Task use format:")
+        await message.answer("<b><i>%new Go shopping</i></b>", parse_mode="html")
+    elif message.text == "📑 Show all tasks":
+
+        all_tasks = get_all_user_tasks(db, message.from_user.id)
+
+        if all_tasks:
+
+            done_dict = {True: "✅", False: " 🔘"}
+            msg = str()
+
+            for task in all_tasks:
+                msg += f"\n{task.name} {done_dict[task.done]}\n"
+
+            await message.answer("Here are your tasks:")
+            await message.answer(msg)
+
+        else:
+            await message.answer("Your ToDo list is empty")
+
+    elif message.text == "✅ Complete task":
+
+        todo_tasks: list = get_all_user_todo_tasks(db, message.from_user.id)
+
+        msg = str()
+        tasks_dict = dict()
+
+        for ind, task in enumerate(todo_tasks, start=1):
+            msg += f"\n{ind}) {task.name}  🔘\n"
+            tasks_dict[ind] = task.task_id
+
+        if todo_tasks:
+            await message.answer("Here are your ToDo tasks")
+            await message.answer(msg)
+            time.sleep(1)
+            await message.answer("To mark task as Done type: <b><i>%complete id</i></b>",
+                                 parse_mode="html")
+            await message.answer("For example: \n\n"
+                                 "1) Task 1  🔘\n"
+                                 "2) Task 2  🔘\n\n"
+                                 "%complete 2", parse_mode="html")
+        else:
+            await message.answer("Your ToDo list is empty")
+
+    elif message.text == "❌ Clear completed tasks":
+
+        completed_tasks = get_all_user_done_tasks(db, message.from_user.id)
+        if completed_tasks:
+            msg = str()
+            for task in completed_tasks:
+                msg += f"\n{task.name}  ✅\n"
+            await message.answer("Here are your completed tasks")
+            await message.answer(msg)
+            time.sleep(1)
+            await message.answer("If you want to delete all you completed tasks, type: \n\n"
+                                 "<b><i>%clear</i></b>", parse_mode="html")
+        else:
+            await message.answer("Your do not have completed tasks")
 
 
-@dp.message_handler(commands=["auth"])
-async def authenticate(message: types.Message):
-    current_user_id = message.from_user.id
-    logged_id_users = get_all_users(db)
-
-    # make_do_receive_true()
-
-    if current_user_id not in logged_id_users:
-        await message.answer(
-            "To <b>login</b> press 👇",
-            parse_mode="HTML",
-            reply_markup=LoginMarkup.markup,
-        )
-    else:
-        await message.answer(
-            "To <b>Completely Delete Account</b> press 👇",
-            parse_mode="HTML",
-            reply_markup=DeleteAccountMarkup.markup,
-        )
-        await message.answer("Be aware that all your ToDos will be <b>completely deleted</b>", parse_mode="html")
-
-
-@dp.message_handler(content_types=["text"])
-async def authenticate_text_handler(message: types.Message):
+@dp.message_handler(commands=["delete"])
+async def delete(message: types.Message):
     current_user = message.from_user.id
-
-    if message.text == "Log-In":
-
-        new_user_id = current_user
-        new_user_username = message.from_user.username
-        new_user = create_new_user(db, new_user_id, new_user_username)
-
-        if new_user.user_id == current_user:
-            await message.answer("You have successfully Logged In",
-                                 reply_markup=types.ReplyKeyboardRemove())
-            make_do_receive_false()
-        else:
-            await message.answer("Something went wrong")
-            await message.answer("Try again", reply_markup=LoginMarkup.markup)
-
-    elif message.text == "Delete my account":
-
-        user_to_delete = current_user
-        response = delete_user(db, user_to_delete)
-
-        if response is True:
-            await message.answer("You have successfully deleted you account",
-                                 reply_markup=types.ReplyKeyboardRemove())
-            make_do_receive_false()
-        else:
-            await message.answer("Something went wrong")
-            await message.answer("Try again", reply_markup=DeleteAccountMarkup.markup)
-
-    elif message.text == "Abort":
-        make_do_receive_false()
-        await message.answer("Aborting", reply_markup=types.ReplyKeyboardRemove())
+    delete_user(db, current_user)
+    await message.answer("All your task have been deleted", reply_markup=types.ReplyKeyboardRemove())
 
 
 if __name__ == "__main__":

@@ -3,6 +3,6 @@
 .env
 *__pycache__*
 *sqlite2*
-db*
+db.*
 *.db
 .vscode

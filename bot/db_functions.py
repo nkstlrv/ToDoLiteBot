@@ -12,11 +12,14 @@ def get_all_users(db: Session):
 
 
 def create_new_user(db: Session, user_id: int, username: str):
-    new_user = models.User(user_id=user_id, username=username)
-    db.add(new_user)
-    db.commit()
-    db.refresh(new_user)
-    return new_user
+    if user_id not in get_all_users(db):
+        new_user = models.User(user_id=user_id, username=username)
+        db.add(new_user)
+        db.commit()
+        db.refresh(new_user)
+        return new_user
+    else:
+        return False
 
 
 def delete_user(db: Session, user_id: int):
@@ -30,17 +33,32 @@ def delete_user(db: Session, user_id: int):
 
 def get_all_user_tasks(db: Session, user_id: int):
     user_tasks = db.query(models.Task).filter(
-        models.Task.user_id == user_id,
-        models.Task.done == False).all()
+        models.Task.user_id == user_id).order_by(models.Task.done).all()
     return user_tasks
 
 
-def create_task(db: Session, name: str, user_id: int):
-    new_task = models.Task(name=name, user_id=user_id)
+def get_all_user_done_tasks(db: Session, user_id: int):
+    user_tasks = db.query(models.Task).filter(
+        models.Task.user_id == user_id,
+        models.Task.done == True
+    ).all()
+    return user_tasks
 
-    user_tasks_names = [task.name for task in get_all_user_tasks(db, user_id)]
 
-    if name in user_tasks_names:
+def get_all_user_todo_tasks(db: Session, user_id: int):
+    user_tasks = db.query(models.Task).filter(
+        models.Task.user_id == user_id,
+        models.Task.done == False
+    ).all()
+    return user_tasks
+
+
+def create_task(db: Session, task_name: str, user_id: int):
+    new_task = models.Task(name=task_name, user_id=user_id)
+
+    user_tasks_names = [task.name for task in get_all_user_todo_tasks(db, user_id)]
+
+    if task_name in user_tasks_names:
         return False
 
     db.add(new_task)
@@ -68,11 +86,15 @@ def mark_task_done(db: Session, task_id: int):
     return False
 
 
-def get_user_done_tasks(db: Session, user_id: int):
-    user_done_tasks = db.query(models.Task).filter(
-        models.Task.user_id == user_id,
-        models.Task.done == True).all()
-    return user_done_tasks
+def delete_completed_tasks(db: Session, user_id: int):
+    tasks_to_delete = get_all_user_done_tasks(db, user_id)
+
+    if tasks_to_delete:
+        for task in tasks_to_delete:
+            db.delete(task)
+            db.commit()
+        else:
+            return True
 
 
 if __name__ == "__main__":
