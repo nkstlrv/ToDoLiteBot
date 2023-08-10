@@ -29,7 +29,9 @@ def delete_user(db: Session, user_id: int):
 
 
 def get_all_user_tasks(db: Session, user_id: int):
-    user_tasks = db.query(models.Task).filter(models.Task.user_id == user_id).all()
+    user_tasks = db.query(models.Task).filter(
+        models.Task.user_id == user_id,
+        models.Task.done == False).all()
     return user_tasks
 
 
@@ -56,12 +58,33 @@ def delete_task(db: Session, task_id: int):
     return False
 
 
+def mark_task_done(db: Session, task_id: int):
+    task_to_complete = db.query(models.Task).filter(models.Task.task_id == task_id).first()
+    if task_to_complete:
+        task_to_complete.done = True
+        db.commit()
+        db.refresh(task_to_complete)
+        return True
+    return False
+
+
+def get_user_done_tasks(db: Session, user_id: int):
+    user_done_tasks = db.query(models.Task).filter(
+        models.Task.user_id == user_id,
+        models.Task.done == True).all()
+    return user_done_tasks
+
+
 if __name__ == "__main__":
     # print(create_new_user(db, 1, 'test'))
     # print(delete_user(db, 182638302))
     # print(get_all_users(db))
-
+    #
     # print(create_task(db, "Task 2", 1))
+    #
+    print(delete_task(db, 1))
+    # print([task.name for task in get_all_user_tasks(db, 1)])
 
-    delete_task(db, 3)
-    print([task.name for task in get_all_user_tasks(db, 1)])
+    # print(mark_task_done(db, 1))
+    # print(get_user_done_tasks(db, 1))
+    # print(get_all_user_tasks(db, 1))
