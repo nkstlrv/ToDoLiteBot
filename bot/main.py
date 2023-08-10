@@ -1,8 +1,8 @@
 import os
 from dotenv import load_dotenv
 from aiogram import Bot, Dispatcher, executor, types
-from markups import MainMenuMarkup, LoginMarkup
-from functions import get_all_users
+from markups import MainMenuMarkup, LoginMarkup, DeleteAccountMarkup
+from functions import get_all_users, create_new_user, delete_user
 import time
 import logging
 from sqlalchemy.orm import Session
@@ -53,6 +53,7 @@ async def start(message: types.Message):
 
 @dp.message_handler(commands=["menu"])
 async def start(message: types.Message):
+    await message.answer("Opening menu", reply_markup=types.ReplyKeyboardRemove())
     await message.answer(
         "<b>Main Menu</b> ⚙",
         parse_mode="HTML",
@@ -71,12 +72,45 @@ async def start(message: types.Message):
             parse_mode="HTML",
             reply_markup=LoginMarkup.markup,
         )
+    else:
+        await message.answer(
+            "To <b>Completely Delete Account</b> press 👇",
+            parse_mode="HTML",
+            reply_markup=LoginMarkup.markup,
+        )
 
 
 @dp.message_handler(content_types=["text"])
 async def menu(message: types.Message):
+    current_user = message.from_user.id
+
     if message.text == "Log-In":
-        pass
+
+        new_user_id = current_user
+        new_user_username = message.from_user.username
+        new_user = create_new_user(db, new_user_id, new_user_username)
+
+        if new_user.user_id == current_user:
+            await message.answer("You have successfully Logged In",
+                                 reply_markup=types.ReplyKeyboardRemove())
+        else:
+            await message.answer("Something went wrong")
+            await message.answer("Try again", reply_markup=LoginMarkup.markup)
+
+    elif message.text == "Delete my account":
+
+        user_to_delete = current_user
+        response = delete_user(db, user_to_delete)
+
+        if response is True:
+            await message.answer("You have successfully deleted you account",
+                                 reply_markup=types.ReplyKeyboardRemove())
+        else:
+            await message.answer("Something went wrong")
+            await message.answer("Try again", reply_markup=DeleteAccountMarkup.markup)
+
+    elif message.text == "Abort":
+        await message.answer("Aborting", reply_markup=types.ReplyKeyboardRemove())
 
 
 if __name__ == "__main__":

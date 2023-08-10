@@ -19,6 +19,16 @@ def create_new_user(db: Session, user_id: int, username: str):
     return new_user
 
 
+def delete_user(db: Session, user_id: int):
+    user_to_delete = db.query(models.User).filter(models.User.user_id == user_id).first()
+    if user_to_delete:
+        db.delete(user_to_delete)
+        db.commit()
+        return True
+    return False
+
+
 if __name__ == "__main__":
     # print(create_new_user(db, 2, 'test2'))
+    print(delete_user(db, 2))
     print(get_all_users(db))
