@@ -5,7 +5,8 @@ from markups import MainMenuMarkup
 from db_functions import (
     get_all_users, create_new_user,
     delete_user, get_all_user_tasks,
-    create_task, get_all_user_done_tasks
+    create_task, get_all_user_todo_tasks,
+    mark_task_done
 
 )
 import time
@@ -56,8 +57,8 @@ async def todo_menu(message: types.Message):
     current_user = message.from_user
 
     # User Reply handling
-    if "@new" in message.text:
-        task = message.text.split('@new')[-1].strip()
+    if "%new" in message.text:
+        task = message.text.split('%new')[-1].strip()
         if task.strip() != "":
             response = create_task(db, task, current_user.id)
             if response:
@@ -66,10 +67,28 @@ async def todo_menu(message: types.Message):
             else:
                 await message.answer("This task already exists")
 
+    elif "%complete" in message.text:
+        task_to_complete = message.text.split('%complete')[-1].strip()
+
+        print(task_to_complete)
+        if task_to_complete.strip() != "":
+            todo_tasks: list = get_all_user_todo_tasks(db, message.from_user.id)
+            tasks_dict = dict()
+            for ind, task in enumerate(todo_tasks, start=1):
+                tasks_dict[ind] = task.task_id
+
+            task_to_complete = int(task_to_complete)
+
+            response = mark_task_done(db, tasks_dict[task_to_complete])
+            if response:
+                await message.answer("Marked as completed")
+            else:
+                await message.answer("This task is already completed")
+
     # Buttons handling
     if message.text == "📝 Add new task":
         await message.answer("To add new Task use format:")
-        await message.answer("<b><i>@new Go shopping</i></b>", parse_mode="html")
+        await message.answer("<b><i>%new Go shopping</i></b>", parse_mode="html")
     elif message.text == "📑 Show all tasks":
 
         all_tasks = get_all_user_tasks(db, message.from_user.id)
@@ -77,17 +96,38 @@ async def todo_menu(message: types.Message):
         if all_tasks:
 
             done_dict = {True: "✅", False: " 🔘"}
-
-            msg = ""
+            msg = str()
 
             for task in all_tasks:
                 msg += f"\n{task.name} {done_dict[task.done]}\n"
 
-            await message.answer("Here are your tasks")
+            await message.answer("Here are your tasks:")
             await message.answer(msg)
 
+        else:
+            await message.answer("Your ToDo list is empty")
 
+    elif message.text == "✅ Complete task":
 
+        todo_tasks: list = get_all_user_todo_tasks(db, message.from_user.id)
+
+        msg = str()
+        tasks_dict = dict()
+
+        for ind, task in enumerate(todo_tasks, start=1):
+            msg += f"\n{ind}) {task.name}  🔘\n"
+            tasks_dict[ind] = task.task_id
+
+        if todo_tasks:
+            await message.answer("Here are your ToDo tasks")
+            await message.answer(msg)
+            time.sleep(1)
+            await message.answer("To mark task as Done type: <b><i>%complete id</i></b>",
+                                 parse_mode="html")
+            await message.answer("For example: \n\n"
+                                 "1) Task 1  🔘\n"
+                                 "2) Task 2  🔘\n\n"
+                                 "%complete 2", parse_mode="html")
         else:
             await message.answer("Your ToDo list is empty")
 

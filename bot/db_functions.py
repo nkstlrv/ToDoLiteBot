@@ -40,6 +40,14 @@ def get_all_user_tasks(db: Session, user_id: int):
 def get_all_user_done_tasks(db: Session, user_id: int):
     user_tasks = db.query(models.Task).filter(
         models.Task.user_id == user_id,
+        models.Task.done == True
+        ).all()
+    return user_tasks
+
+
+def get_all_user_todo_tasks(db: Session, user_id: int):
+    user_tasks = db.query(models.Task).filter(
+        models.Task.user_id == user_id,
         models.Task.done == False
         ).all()
     return user_tasks
@@ -48,7 +56,7 @@ def get_all_user_done_tasks(db: Session, user_id: int):
 def create_task(db: Session, task_name: str, user_id: int):
     new_task = models.Task(name=task_name, user_id=user_id)
 
-    user_tasks_names = [task.name for task in get_all_user_done_tasks(db, user_id)]
+    user_tasks_names = [task.name for task in get_all_user_todo_tasks(db, user_id)]
 
     if task_name in user_tasks_names:
         return False
