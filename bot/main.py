@@ -53,12 +53,19 @@ async def start(message: types.Message):
 
 @dp.message_handler(commands=["menu"])
 async def start(message: types.Message):
-    await message.answer("Opening menu", reply_markup=types.ReplyKeyboardRemove())
-    await message.answer(
-        "<b>Main Menu</b> ⚙",
-        parse_mode="HTML",
-        reply_markup=MainMenuMarkup.markup,
-    )
+    current_user_id = message.from_user.id
+    logged_id_users = get_all_users(db)
+
+    if current_user_id not in logged_id_users:
+        await message.answer("You need to <b>Log-In</b> first", parse_mode="html")
+        await message.answer("To <b>login</b>, press 👉 /auth", parse_mode="html")
+    else:
+        await message.answer("Opening menu", reply_markup=types.ReplyKeyboardRemove())
+        await message.answer(
+            "<b>Main Menu</b> ⚙",
+            parse_mode="HTML",
+            reply_markup=MainMenuMarkup.markup,
+        )
 
 
 @dp.message_handler(commands=["auth"])

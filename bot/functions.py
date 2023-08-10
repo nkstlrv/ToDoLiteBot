@@ -30,5 +30,5 @@ def delete_user(db: Session, user_id: int):
 
 if __name__ == "__main__":
     # print(create_new_user(db, 2, 'test2'))
-    print(delete_user(db, 2))
+    print(delete_user(db, 182638302))
     print(get_all_users(db))
