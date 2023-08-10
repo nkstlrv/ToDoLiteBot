@@ -2,7 +2,7 @@ import os
 from dotenv import load_dotenv
 from aiogram import Bot, Dispatcher, executor, types
 from markups import MainMenuMarkup, LoginMarkup, DeleteAccountMarkup
-from functions import get_all_users, create_new_user, delete_user
+from functions import get_all_users, create_new_user, delete_user, create_task
 import time
 import logging
 from sqlalchemy.orm import Session
@@ -20,6 +20,19 @@ load_dotenv()
 TELEGRAM_API_KEY = os.getenv("TELEGRAM_API_KEY")
 bot = Bot(token=TELEGRAM_API_KEY)
 dp = Dispatcher(bot)
+
+# Argument needed to understand weather to process user inputs
+do_receive_messages = False
+
+
+def make_do_receive_true():
+    global do_receive_messages
+    do_receive_messages = True
+
+
+def make_do_receive_false():
+    global do_receive_messages
+    do_receive_messages = False
 
 
 @dp.message_handler(commands=["start"])
@@ -68,10 +81,26 @@ async def start(message: types.Message):
         )
 
 
+@dp.callback_query_handler(text_startswith="task")
+async def callback(call):
+    if call.data == "task_add":
+        await bot.send_message(call.from_user.id, "Type your ToDo in format")
+        await bot.send_message(call.from_user.id, "<b><i>@new Go shopping</i></b>", parse_mode="html")
+        make_do_receive_true()
+
+
+@dp.message_handler(content_types=["text"])
+async def menu(message: types.Message):
+    if "#" in message.text:
+        ...
+
+
 @dp.message_handler(commands=["auth"])
-async def start(message: types.Message):
+async def authenticate(message: types.Message):
     current_user_id = message.from_user.id
     logged_id_users = get_all_users(db)
+
+    # make_do_receive_true()
 
     if current_user_id not in logged_id_users:
         await message.answer(
@@ -89,7 +118,7 @@ async def start(message: types.Message):
 
 
 @dp.message_handler(content_types=["text"])
-async def menu(message: types.Message):
+async def authenticate_text_handler(message: types.Message):
     current_user = message.from_user.id
 
     if message.text == "Log-In":
@@ -101,6 +130,7 @@ async def menu(message: types.Message):
         if new_user.user_id == current_user:
             await message.answer("You have successfully Logged In",
                                  reply_markup=types.ReplyKeyboardRemove())
+            make_do_receive_false()
         else:
             await message.answer("Something went wrong")
             await message.answer("Try again", reply_markup=LoginMarkup.markup)
@@ -113,15 +143,15 @@ async def menu(message: types.Message):
         if response is True:
             await message.answer("You have successfully deleted you account",
                                  reply_markup=types.ReplyKeyboardRemove())
+            make_do_receive_false()
         else:
             await message.answer("Something went wrong")
             await message.answer("Try again", reply_markup=DeleteAccountMarkup.markup)
 
     elif message.text == "Abort":
+        make_do_receive_false()
         await message.answer("Aborting", reply_markup=types.ReplyKeyboardRemove())
 
 
 if __name__ == "__main__":
-    logging.info("[STARTING SERVER...]")
     executor.start_polling(dp)
-    logging.info("SERVER STOPPED]")
