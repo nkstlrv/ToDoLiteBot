@@ -12,7 +12,6 @@ from db_functions import (
 )
 import time
 import logging
-from sqlalchemy.orm import Session
 import models
 from database import SessionLocal, engine
 
