@@ -30,8 +30,7 @@ def delete_user(db: Session, user_id: int):
 
 def get_all_user_tasks(db: Session, user_id: int):
     user_tasks = db.query(models.Task).filter(
-        models.Task.user_id == user_id,
-        models.Task.done == False).all()
+        models.Task.user_id == user_id).all()
     return user_tasks
 
 
@@ -68,11 +67,6 @@ def mark_task_done(db: Session, task_id: int):
     return False
 
 
-def get_user_done_tasks(db: Session, user_id: int):
-    user_done_tasks = db.query(models.Task).filter(
-        models.Task.user_id == user_id,
-        models.Task.done == True).all()
-    return user_done_tasks
 
 
 if __name__ == "__main__":
