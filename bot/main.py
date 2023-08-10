@@ -68,6 +68,12 @@ async def start(message: types.Message):
         )
 
 
+@dp.callback_query_handler(text_startswith="task")
+async def callback(call):
+    if call.data == "task_add":
+        pass
+
+
 @dp.message_handler(commands=["auth"])
 async def start(message: types.Message):
     current_user_id = message.from_user.id
