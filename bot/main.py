@@ -3,6 +3,11 @@ from dotenv import load_dotenv
 from aiogram import Bot, Dispatcher, executor, types
 import time
 import logging
+from sqlalchemy.orm import Session
+import models
+from database import SessionLocal, engine
+
+models.Base.metadata.create_all(bind=engine)
 
 logging.basicConfig(format="%(levelname)s: %(message)s", level=logging.INFO)
 
